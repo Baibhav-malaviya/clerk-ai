@@ -1,7 +1,12 @@
+import GeminiAsk from "@/components/GeminiAsk";
 import React from "react";
 
 function Ask() {
-	return <div>ask page</div>;
+	return (
+		<div>
+			<GeminiAsk />
+		</div>
+	);
 }
 
 export default Ask;
