@@ -11,6 +11,8 @@ const isPublicRoute = createRouteMatcher([
 // Define public API routes that don't require authentication
 const isPublicApiRoute = createRouteMatcher([
 	"/api/ask",
+	"/api/our-chat",
+	"/api/chat-response",
 	//! we can add more public API routes here
 ]);
 
