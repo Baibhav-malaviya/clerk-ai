@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { queryIndex } from "@/lib/pineconeClient";
-import { model } from "../ask/route";
+import { model } from "../chat/route";
 
-export async function POST(request: NextRequest) {
+import { conversationManager } from "@/lib/conversationHistory";
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
 	try {
-		const { query } = await request.json();
-		console.log("query: ", query);
+		const { query }: { query: string } = await request.json();
+
 		if (!query) {
 			return NextResponse.json(
 				{ message: "Query is required", success: false },
@@ -13,19 +15,48 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		conversationManager.clearHistory();
+
+		// Retrieve the conversation history
+		const history = conversationManager.getHistory();
+
+		//  adding query to the history class
+		conversationManager.addUserQuery(query);
+
 		// Query the Pinecone index with optional namespace and filter
-		const results = await queryIndex(query, "ns1");
+		const context = await queryIndex(query, "ns1");
 
-		const result = await model.generateContent(
-			`Summarize the following text in a concise manner: ${results}`
-		);
-		const response = await result.response;
-		const text = response.text();
+		const prompt = `
+			Based on the following context and query, provide a relevant and concise response. If the query is not related to the context, handle the query appropriately by either providing a general response or indicating that the context does not match the query. And also act like you are clerk-ai chatbot/assistance.
 
-		console.log("READABLE TEXT: ", text);
+				Context:
+				"""
+				${context}
+				"""
+
+				Query:
+				"""
+				${query}
+				"""
+
+				Response:
+		`;
+
+		// Start a new chat with the existing history
+		const chat = model.startChat({ history });
+
+		// Send the message and get the result
+		const { response } = await chat.sendMessage(prompt);
+
+		const text = await response.text(); // use await to get the text
+
+		// Update the history with the AI response
+		conversationManager.addAIQuery(text);
+
+		const updatedHistory = conversationManager.getHistory();
 
 		return NextResponse.json(
-			{ message: "Query successful", success: true, results },
+			{ message: "Query successful", success: true, text },
 			{ status: 200 }
 		);
 	} catch (error: any) {

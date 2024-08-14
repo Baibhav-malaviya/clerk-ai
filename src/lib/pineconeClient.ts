@@ -27,7 +27,6 @@ export async function queryIndex(
 ): Promise<string[]> {
 	// Generate embeddings for the user query
 	const queryEmbedding = await generateEmbeddings(query);
-	console.log("queryEmbedding: ", queryEmbedding);
 
 	// Query Pinecone index with optional namespace and filter
 	const results = await index.namespace(namespace || "ns1").query({
@@ -36,8 +35,6 @@ export async function queryIndex(
 		includeValues: false, // Adjust based on your needs
 		includeMetadata: true, // Include metadata to get original text
 	});
-
-	console.log("results of query: ", results);
 
 	// Extract and return the text from the results
 	return results.matches.map((match: any) => match.metadata.text);
